@@ -15,9 +15,9 @@ Run http-server -c-1 -p80 to start server on open port 80.
 // Network Settings
 // const serverIp      = 'https://yourservername.herokuapp.com';
 // const serverIp      = 'https://yourprojectname.glitch.me';
-const serverIp      = 'https://besteonlinepong.herokuapp.com/';
+const serverIp      = '127.0.0.1';
 const serverPort    = '3000';
-const local         = false;   // true if running locally, false
+const local         = true;   // true if running locally, false
                               // if running on remote server
 
 // Global variables here. ---->
@@ -59,9 +59,9 @@ function draw () {
     // Update and draw game objects
     game.draw();
 
-    //stroke(255, 255, 255);
-    //line(width / 4, 0, width / 4, height);
-    //line(width - width / 4, 0, width - width / 4, height);
+    stroke(255, 255, 255);
+    line(width / 4, 0, width / 4, height);
+    line(width - width / 4, 0, width - width / 4, height);
     // <----
 
     // Display server address
@@ -72,10 +72,10 @@ function draw () {
 let idPlayer1, idPlayer2;
 function onClientConnect (data) {
   // Client connect logic here. --->
-  console.log(data.id + ' has connected.');
+  console.log(data.id + ' has connected. lalalala');
   console.log(loggedPlayers);
   if (!game.checkId(data.id)) {
-    if (loggedPlayers == 0) {
+    if (loggedPlayers === 0) {
       idPlayer1 = data.id;
       loggedPlayers++;
       game.add(idPlayer1,
@@ -83,7 +83,7 @@ function onClientConnect (data) {
               height / 4,
               30, 120
       );
-    } else if (loggedPlayers == 1) {
+    } else if (loggedPlayers === 1) {
       idPlayer2 = data.id;
       loggedPlayers++;
       game.add(idPlayer2,
@@ -187,7 +187,7 @@ class Game {
     this.ripples    = new Ripples();
   }
 
-  add (id, x, y, w, h) {
+  add(id, x, y, w, h) {
     this.players[id] = createSprite(x, y, w, h);
     this.players[id].id = "p"+this.id;
     this.players[id].setCollider("rectangle", 0, 0, w, h);
@@ -205,6 +205,7 @@ class Game {
 
   draw() {
     this.checkBounds();
+    this.printPlayerIds();
     this.ripples.draw();
     drawSprites();
   }
@@ -263,7 +264,7 @@ class Game {
       
       
   }
-
+// CHECK BOUNDS OF EVERY PLAYER
   checkBounds() {
     let id;
     for (id in this.players) {
@@ -283,7 +284,7 @@ class Game {
         } else {
           right = false;
         }
-
+        // Oben und Unten
         if (this.players[id].position.y < 0) {
             this.players[id].position.y = this.h - 1;
         }
