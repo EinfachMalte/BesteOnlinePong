@@ -184,7 +184,36 @@ function getKeyByValue(object, value) {
 ////////////
 // Gemstone room ID generator
 const roomNames =
-   ["agate"]
+   ["agate",
+    "amber",
+    "amethyst",
+    "barite",
+    "beryl",
+    "bloodstone",
+    "coral",
+    "crystal",
+    "diamond",
+    "emerald",
+    "fluorite",
+    "garnet",
+    "goldstone",
+    "jade",
+    "jasper",
+    "moonstone",
+    "onyx",
+    "opal",
+    "pearl",
+    "peridot",
+    "quahog",
+    "quartz",
+    "ruby",
+    "sapphire",
+    "sardonyx",
+    "sunstone",
+    "tigereye",
+    "topaz",
+    "turquoise",
+    "zircon"]
 
 const roomIds = randomNoRepeats(roomNames);
 
