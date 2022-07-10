@@ -4,7 +4,7 @@ p5.multiplayer - HOST
 This 'host' sketch is intended to be run in desktop browsers. 
 It connects to a node server via socket.io, from which it receives
 rerouted input data from all connected 'clients'.
-
+heroku plugins:install heroku-fork
 Navigate to the project's 'public' directory.
 Run http-server -c-1 to start server. This will default to port 8080.
 Run http-server -c-1 -p80 to start server on open port 80.
@@ -181,8 +181,8 @@ class Game {
     this.w          = w;
     this.h          = h;
     this.players	= {};
-    this.numPlayers	= 0;
-    this.id         = 0;
+    this.numPlayers	= 2;
+    this.id         = 1;
     this.colliders	= new Group();
     this.ripples    = new Ripples();
   }
