@@ -181,8 +181,8 @@ class Game {
     this.w          = w;
     this.h          = h;
     this.players	= {};
-    this.numPlayers	= 2;
-    this.id         = 1;
+    this.numPlayers	= 0;
+    this.id         = 0;
     this.colliders	= new Group();
     this.ripples    = new Ripples();
   }
