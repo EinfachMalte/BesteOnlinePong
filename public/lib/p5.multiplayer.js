@@ -5,7 +5,7 @@
 let socket;
 let roomId          = null;
 let id              = null;
-
+let controllerUrl = '';
 // Process URL
 // Used to process the room ID. In order to specify a room ID,
 // include ?=uniqueName, where uniqueName is replaced with the 
@@ -82,13 +82,18 @@ function onHostConnect (data) {
 
 // Displays server address in lower left of screen
 function displayAddress() {
+  let controllerUrl = serverIp+"/?="+roomId;
   push();
     fill(255);
     textSize(50);
-    text(serverIp+"/?="+roomId, 10, height-50);
+    text(controllerUrl, 10, height-50);
   pop();
 }
 
+function getUrl() {
+  let controllerUrl = serverIp+"/?="+roomId;
+  return controllerUrl;
+}
 ////////////
 // CLIENT
 

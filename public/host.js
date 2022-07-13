@@ -22,11 +22,13 @@ const local         = true;   // true if running locally, false
 
 // Global variables here. ---->
 
-const velScale	= 10;
+let velScale	= 10;
 const debug = true;
 let game;
 let loggedPlayers = 0;
-
+let startTimerPlayer1 = false, startTimerPlayer2 = false;
+let timerPlayer1 = 3, timerPlayer2 = 3;
+let tagDiv;
 // <----
 
 function preload() {
@@ -37,9 +39,12 @@ function setup () {
   createCanvas(windowWidth, windowHeight);
 
   // Host/Game setup here. ---->
-  
+  tagDiv = createDiv();
+  // position it:
+  tagDiv.position(130, 4);
   game = new Game(width, height);
 
+  
   // <----
 }
 
@@ -66,6 +71,17 @@ function draw () {
 
     // Display server address
     displayAddress();
+
+    let qr = qrcode(0, 'L');
+    qr.addData(getUrl());
+    qr.make();
+    // create an image from it:
+    // paaramtetrs are cell size, margin size, and alt tag
+    // cell size default: 2
+    // margin zize defaault: 4 * cell size
+    let qrImg = qr.createImgTag(3, 1, "qr code");
+    // put the image into the HTML div:
+    tagDiv.html(qrImg);
   }
 }
 
@@ -78,6 +94,7 @@ function onClientConnect (data) {
     if (loggedPlayers === 0) {
       idPlayer1 = data.id;
       loggedPlayers++;
+      game.addBall(width / 2, height / 2, 10, "ball");
       game.add(idPlayer1,
               width / 12,
               height / 4,
@@ -91,6 +108,7 @@ function onClientConnect (data) {
         height / 4,
         30, 120
       );
+      game.setVelocity("ball", 2, 0);
     }
     
   }
@@ -139,22 +157,29 @@ function mousePressed() {
   sendData('timestamp', { timestamp: millis() });
 }
 
-let up = false, down = false, left = false, right = false;
-
 ////////////
 // Input processing
 function processJoystick (data) {
-  
-  if (left && data.joystickX > 0) {
-    game.setVelocity(data.id, data.joystickX*velScale, -data.joystickY*velScale);
-  } else if (right && data.joystickX < 0) {
-    game.setVelocity(data.id, data.joystickX*velScale, -data.joystickY*velScale);
-  } else if (up || down) {
-    game.setVelocity(data.id, 0, -data.joystickY*velScale);
-  } else if (up == false && down == false && right == false && left == false) {
-    game.setVelocity(data.id, data.joystickX*velScale, -data.joystickY*velScale);
+  if (data.id == idPlayer1) {
+    if (game.players[idPlayer1].left && data.joystickX > 0) {
+      game.setVelocity(data.id, data.joystickX*velScale, -data.joystickY*velScale);
+    } else if (game.players[idPlayer1].right && data.joystickX < 0) {
+      game.setVelocity(data.id, data.joystickX*velScale, -data.joystickY*velScale);
+    } else if (game.players[idPlayer1].left == false && game.players[idPlayer1].right == false) {
+      game.setVelocity(data.id, data.joystickX*velScale, -data.joystickY*velScale);
+    }
+    game.setVelocity(data.id, game.players[idPlayer1].velocity.x, -data.joystickY*velScale);
+  } else if (data.id == idPlayer2) {
+    if (game.players[idPlayer2].left && data.joystickX > 0) {
+      console.log("test");
+      game.setVelocity(data.id, data.joystickX*velScale, -data.joystickY*velScale);
+    } else if (game.players[idPlayer2].right && data.joystickX < 0) {
+      game.setVelocity(data.id, data.joystickX*velScale, -data.joystickY*velScale);
+    } else if (game.players[idPlayer2].left == false && game.players[idPlayer2].right == false) {
+      game.setVelocity(data.id, data.joystickX*velScale, -data.joystickY*velScale);
+    }
+    game.setVelocity(data.id, game.players[idPlayer2].velocity.x, -data.joystickY*velScale);
   }
-
   if (debug) {
     console.log(data.id + ': {' +
                 data.joystickX + ',' +
@@ -165,7 +190,11 @@ function processJoystick (data) {
 function processButton (data) {
   game.players[data.id].val = data.button;
 
-  game.createRipple(data.id, 300, 1000);
+  if (data.id == idPlayer1) {
+    startTimerPlayer1 = true;
+  } else if (data.id == idPlayer2) {
+    startTimerPlayer2 = true;
+  }
   
   if (debug) {
     console.log(data.id + ': ' +
@@ -176,38 +205,76 @@ function processButton (data) {
 ////////////
 // Game
 // This simple placeholder game makes use of p5.play
+let velocityChange = 0;
+let changed = false;
 class Game {
   constructor (w, h) {
     this.w          = w;
     this.h          = h;
     this.players	= {};
+    this.ball = {};
     this.numPlayers	= 0;
     this.id         = 0;
     this.colliders	= new Group();
     this.ripples    = new Ripples();
+    this.left;
+    this.right;
   }
 
   add(id, x, y, w, h) {
     this.players[id] = createSprite(x, y, w, h);
-    this.players[id].id = "p"+this.id;
+    this.players[id].id = id;
     this.players[id].setCollider("rectangle", 0, 0, w, h);
     this.players[id].color = color(255, 255, 255);
     this.players[id].shapeColor = color(255, 255, 255);
     this.players[id].scale = 1;
     this.players[id].mass = 1;
-    this.player[id].width = w;
-    this.player[id].height = h;
+    this.players[id].left = false;
+    this.players[id].right = false;
     this.colliders.add(this.players[id]);
     print(this.players[id].id + " added.");
-    this.id++;
     this.numPlayers++;
+  }
+
+  addBall(x, y, size, id) {
+    this.ball[id] = createSprite(x, y, size, size);
+    this.ball[id].setCollider("rectangle", 0, 0, size, size);
+    this.ball[id].id = id;
+    this.ball[id].scale = 1;
+    this.ball[id].mass = 1;
+    this.colliders.add(this.ball[id]);
+    console.log("ball added: " + id);
   }
 
   draw() {
     this.checkBounds();
     this.printPlayerIds();
     this.ripples.draw();
+    this.bounce();
     drawSprites();
+
+    if (startTimerPlayer1) {
+      velScale = 15;
+      if (frameCount % 60 == 0) {
+        console.log(timerPlayer1 + " Player 1");
+        timerPlayer1--;
+        this.createRipple(idPlayer1, 300, 1000);
+      }
+      if (timerPlayer1 <= 0) {
+        startTimerPlayer1 = false;
+        timerPlayer1 = 3;
+        velScale = 10;
+      }
+    } else if (startTimerPlayer2) {
+      if (frameCount % 60 == 0) {
+        console.log(timerPlayer2 + " Player 2");
+        timerPlayer2--;
+      }
+      if (timerPlayer2 <= 0) {
+        startTimerPlayer2 = false;
+        timerPlayer2 = 3;
+      }
+    }
   }
 
   createRipple(id, r, duration) {
@@ -256,13 +323,14 @@ class Game {
   }
 
   setVelocity(id, velx, vely) {
-
-
-        this.players[id].velocity.x = velx;
-        this.players[id].velocity.y = vely;
-
-      
-      
+    if (id == "ball"){
+      this.ball[id].velocity.x = velx;
+      this.ball[id].velocity.y = vely;
+    } else {
+      velocityChange = this.players[id].velocity.x;
+      this.players[id].velocity.x = velx;
+      this.players[id].velocity.y = vely;
+    }
   }
 // CHECK BOUNDS OF EVERY PLAYER
   checkBounds() {
@@ -271,18 +339,18 @@ class Game {
       if (id == idPlayer1) {
         if (this.players[id].position.x - 30 < 0) {
             this.players[id].velocity.x = 0;
-            this.players[id].velocity.y = 0;
-            left = true;
+            //this.players[id].velocity.y = 0;
+            this.players[id].left = true;
         } else {
-          left = false;
+          this.players[id].left = false;
         }
 
-        if (this.players[id].position.x + 30 > this.w / 4) {
+        if (this.players[id].position.x + 30 > width / 4) {
           this.players[id].velocity.x = 0;
-          this.players[id].velocity.y = 0;
-          right = true;
+          //this.players[id].velocity.y = 0;
+          this.players[id].right = true;
         } else {
-          right = false;
+          this.players[id].right = false;
         }
         // Oben und Unten
         if (this.players[id].position.y < 0) {
@@ -293,9 +361,74 @@ class Game {
             this.players[id].position.y = 1;
         }
       } else if (id == idPlayer2) {
-      
+        if (this.players[id].position.x - 30 < width- width / 4) {
+          this.players[id].velocity.x = 0;
+         /// this.players[id].velocity.y = 0;
+          this.players[id].left = true;
+        } else {
+          this.players[id].left = false;
+        }
+
+        if (this.players[id].position.x + 30 > width) {
+          this.players[id].velocity.x = 0;
+          this.players[id].right = true;
+        } else {
+          this.players[id].right = false;
+        }
+        // Oben und Unten
+        if (this.players[id].position.y < 0) {
+            this.players[id].position.y = this.h - 1;
+        }
+
+        if (this.players[id].position.y > this.h) {
+            this.players[id].position.y = 1;
+        }
       }
     } 
+  }
+
+  bounce () {
+    let buffer = true;
+    // TODO: ball muss am rand abprallen
+    for (let id in this.players) {
+      if (this.ball["ball"].position.y + 10 >= height && buffer || this.ball["ball"].position.y - 10 <= 0 && buffer) {
+        this.setVelocity("ball", this.ball["ball"].velocity.x, this.ball["ball"].velocity.y * -1);
+        buffer = false;
+      } else {
+        buffer = true;
+      }
+      if (id == idPlayer1) {
+        if (this.ball["ball"].position.x + 10 <= this.players[id].position.x + 30) {
+          if (this.ball["ball"].position.y > this.players[id].position.y - 60 && this.ball["ball"].position.y < this.players[id].position.y + 60) {
+            let difference = (this.ball["ball"].position.y - this.players[id].position.y) * 0.1;
+            this.setVelocity("ball", this.ball["ball"].velocity.x * -1, difference);
+          } else {
+            this.setVelocity("ball", this.ball["ball"].velocity.x, this.ball["ball"].velocity.y);
+          }
+        }
+      } else if (id == idPlayer2) {
+        if (this.ball["ball"].position.x + 10 >= this.players[id].position.x - 15) {
+          if (this.ball["ball"].position.y > this.players[id].position.y - 60 && this.ball["ball"].position.y < this.players[id].position.y + 60) {
+            let difference = (this.ball["ball"].position.y - this.players[id].position.y) * 0.1;
+            this.setVelocity("ball", this.ball["ball"].velocity.x * -1, difference);
+          } else {
+            this.setVelocity("ball", this.ball["ball"].velocity.x, this.ball["ball"].velocity.y);
+          }
+        }
+      }
+    }
+
+    //const bounce = (p5: p5Types) => {
+   // if (yBall > yPlayer && yBall < yPlayer + 60 && xBall + ballSize <= xPlayer + widthPlayer * 2) {
+      //xBallspeed *= -1;
+     //     yBallspeed = (yBall-yPlayer) * 0.05;
+     //     xBallspeed += 1;
+     // }  else if (yBall > yPlayer2 && yBall < yPlayer2 + 60 && xBall + ballSize * 2 >= xPlayer2 + widthPlayer * 2) {
+     //     xBallspeed *= -1;
+     //     yBallspeed = (yBall-yPlayer2) * 0.05;
+     //     xBallspeed += 1;
+     // }
+  //}
   }
 }
 
