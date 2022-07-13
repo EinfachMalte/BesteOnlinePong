@@ -15,9 +15,9 @@ Run http-server -c-1 -p80 to start server on open port 80.
 // Network Settings
 // const serverIp      = 'https://yourservername.herokuapp.com';
 // const serverIp      = 'https://yourprojectname.glitch.me';
-const serverIp      = '127.0.0.1';
+const serverIp      = 'https://besteonlinepong.herokuapp.com/';
 const serverPort    = '3000';
-const local         = true;   // true if running locally, false
+const local         = false;   // true if running locally, false
                               // if running on remote server
 
 // Global variables here. ---->
@@ -41,7 +41,7 @@ function setup () {
   // Host/Game setup here. ---->
   tagDiv = createDiv();
   // position it:
-  tagDiv.position(130, 4);
+  tagDiv.position(30, height - 200);
   game = new Game(width, height);
 
   
